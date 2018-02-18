@@ -5,7 +5,7 @@ stdenv.mkDerivation {
   buildInputs = [ nixUnstable pkgconfig ];
   src = ./.;
   buildPhase = ''
-    gcc \
+    $CXX \
       -std=c++14 -g -Wall -include config.h \
       $(pkg-config --cflags --libs nix-store) \
       -shared \
