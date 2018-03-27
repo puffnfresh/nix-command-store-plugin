@@ -10,6 +10,7 @@ class ScriptMaster
 private:
 
     const std::string script;
+    const bool useMaster;
     const int logFD;
 
     struct State
@@ -22,7 +23,7 @@ private:
 
 public:
 
-    ScriptMaster(const std::string & script, int logFD = -1);
+    ScriptMaster(const std::string & script, bool useMaster, int logFD = -1);
 
     struct Connection
     {

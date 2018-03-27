@@ -18,7 +18,7 @@ public:
         : Store(params)
         , RemoteStore(params)
         , script(script)
-        , master(script)
+        , master(script, connections->capacity() > 1)
     {
     }
 

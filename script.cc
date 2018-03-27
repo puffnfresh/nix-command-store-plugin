@@ -2,8 +2,9 @@
 
 namespace nix {
 
-ScriptMaster::ScriptMaster(const std::string & script, int logFD)
+ScriptMaster::ScriptMaster(const std::string & script, bool useMaster, int logFD)
     : script(script)
+    , useMaster(useMaster)
     , logFD(logFD)
 {
     if (script == "" || hasPrefix(script, "-"))
@@ -50,6 +51,8 @@ std::unique_ptr<ScriptMaster::Connection> ScriptMaster::startCommand()
 
 Path ScriptMaster::startMaster()
 {
+    if (!useMaster) return "";
+
     auto state(state_.lock());
 
     if (state->scriptMaster != -1) return *state->tmpDir;
