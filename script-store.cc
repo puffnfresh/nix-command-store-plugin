@@ -43,6 +43,10 @@ private:
     std::string script;
 
     ScriptMaster master;
+
+    void setOptions(RemoteStore::Connection & conn) override
+    {
+    };
 };
 
 
