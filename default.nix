@@ -1,9 +1,7 @@
-{ nix }:
-
-with import <nixpkgs> { };
+{ stdenv, nixUnstable, pkgconfig, cmake }:
 
 stdenv.mkDerivation {
   name = "nix-script-store-plugin";
-  buildInputs = [ nix pkgconfig cmake ];
+  buildInputs = [ nixUnstable pkgconfig cmake ];
   src = ./.;
 }
