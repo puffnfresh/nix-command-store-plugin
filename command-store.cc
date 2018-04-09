@@ -4,27 +4,27 @@
 #include "archive.hh"
 #include "worker-protocol.hh"
 #include "pool.hh"
-#include "script.hh"
+#include "command.hh"
 
 namespace nix {
 
-static std::string uriScheme = "script://";
+static std::string uriScheme = "command://";
 
-class ScriptStore : public RemoteStore
+class CommandStore : public RemoteStore
 {
 public:
 
-    ScriptStore(const std::string & script, const Params & params)
+    CommandStore(const std::string & command, const Params & params)
         : Store(params)
         , RemoteStore(params)
-        , script(script)
-        , master(script, connections->capacity() > 1)
+        , command(command)
+        , master(command, connections->capacity() > 1)
     {
     }
 
     std::string getUri() override
     {
-        return uriScheme + script;
+        return uriScheme + command;
     }
 
     void narFromPath(const Path & path, Sink & sink) override;
@@ -35,14 +35,14 @@ private:
 
     struct Connection : RemoteStore::Connection
     {
-        std::unique_ptr<ScriptMaster::Connection> scriptConn;
+        std::unique_ptr<CommandMaster::Connection> commandConn;
     };
 
     ref<RemoteStore::Connection> openConnection() override;
 
-    std::string script;
+    std::string command;
 
-    ScriptMaster master;
+    CommandMaster master;
 
     void setOptions(RemoteStore::Connection & conn) override
     {
@@ -64,7 +64,7 @@ public:
     }
 };
 
-void ScriptStore::narFromPath(const Path & path, Sink & sink)
+void CommandStore::narFromPath(const Path & path, Sink & sink)
 {
     auto conn(connections->get());
     conn->to << wopNarFromPath << path;
@@ -74,17 +74,17 @@ void ScriptStore::narFromPath(const Path & path, Sink & sink)
     parseDump(ps, fwd);
 }
 
-ref<FSAccessor> ScriptStore::getFSAccessor()
+ref<FSAccessor> CommandStore::getFSAccessor()
 {
     return make_ref<RemoteFSAccessor>(ref<Store>(shared_from_this()));
 }
 
-ref<RemoteStore::Connection> ScriptStore::openConnection()
+ref<RemoteStore::Connection> CommandStore::openConnection()
 {
     auto conn = make_ref<Connection>();
-    conn->scriptConn = master.startCommand();
-    conn->to = FdSink(conn->scriptConn->in.get());
-    conn->from = FdSource(conn->scriptConn->out.get());
+    conn->commandConn = master.startCommand();
+    conn->to = FdSink(conn->commandConn->in.get());
+    conn->from = FdSource(conn->commandConn->out.get());
     initConnection(*conn);
     return conn;
 }
@@ -95,7 +95,7 @@ static RegisterStoreImplementation regStore([](
     -> std::shared_ptr<Store>
 {
     if (std::string(uri, 0, uriScheme.size()) != uriScheme) return 0;
-    return std::make_shared<ScriptStore>(std::string(uri, uriScheme.size()), params);
+    return std::make_shared<CommandStore>(std::string(uri, uriScheme.size()), params);
 });
 
 }

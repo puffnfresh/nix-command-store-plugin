@@ -5,17 +5,17 @@
 
 namespace nix {
 
-class ScriptMaster
+class CommandMaster
 {
 private:
 
-    const std::string script;
+    const std::string command;
     const bool useMaster;
     const int logFD;
 
     struct State
     {
-        Pid scriptMaster;
+        Pid commandMaster;
         std::unique_ptr<AutoDelete> tmpDir;
     };
 
@@ -23,11 +23,11 @@ private:
 
 public:
 
-    ScriptMaster(const std::string & script, bool useMaster, int logFD = -1);
+    CommandMaster(const std::string & command, bool useMaster, int logFD = -1);
 
     struct Connection
     {
-        Pid scriptPid;
+        Pid commandPid;
         AutoCloseFD out, in;
     };
 

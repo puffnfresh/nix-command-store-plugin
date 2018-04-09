@@ -1,17 +1,17 @@
-#include "script.hh"
+#include "command.hh"
 
 namespace nix {
 
-ScriptMaster::ScriptMaster(const std::string & script, bool useMaster, int logFD)
-    : script(script)
+CommandMaster::CommandMaster(const std::string & command, bool useMaster, int logFD)
+    : command(command)
     , useMaster(useMaster)
     , logFD(logFD)
 {
-    if (script == "" || hasPrefix(script, "-"))
-        throw Error("invalid script '%s'", script);
+    if (command == "" || hasPrefix(command, "-"))
+        throw Error("invalid command '%s'", command);
 }
 
-std::unique_ptr<ScriptMaster::Connection> ScriptMaster::startCommand()
+std::unique_ptr<CommandMaster::Connection> CommandMaster::startCommand()
 {
     Path tmpDir = startMaster();
 
@@ -20,7 +20,7 @@ std::unique_ptr<ScriptMaster::Connection> ScriptMaster::startCommand()
     out.create();
 
     auto conn = std::make_unique<Connection>();
-    conn->scriptPid = startProcess([&]() {
+    conn->commandPid = startProcess([&]() {
         restoreSignals();
 
         close(in.writeSide.get());
@@ -33,10 +33,10 @@ std::unique_ptr<ScriptMaster::Connection> ScriptMaster::startCommand()
         if (logFD != -1 && dup2(logFD, STDERR_FILENO) == -1)
             throw SysError("duping over stderr");
 
-        Strings args = { script, "start", tmpDir };
+        Strings args = { command, "start", tmpDir };
         execvp(args.begin()->c_str(), stringsToCharPtrs(args).data());
 
-        throw SysError("executing '%s'", script);
+        throw SysError("executing '%s'", command);
     });
 
 
@@ -49,13 +49,13 @@ std::unique_ptr<ScriptMaster::Connection> ScriptMaster::startCommand()
     return conn;
 }
 
-Path ScriptMaster::startMaster()
+Path CommandMaster::startMaster()
 {
     if (!useMaster) return "";
 
     auto state(state_.lock());
 
-    if (state->scriptMaster != -1) return *state->tmpDir;
+    if (state->commandMaster != -1) return *state->tmpDir;
 
     Path tmpDir = createTempDir("", "nix", true, true, 0700);
     state->tmpDir = std::make_unique<AutoDelete>(tmpDir);
@@ -63,7 +63,7 @@ Path ScriptMaster::startMaster()
     Pipe out;
     out.create();
 
-    state->scriptMaster = startProcess([&]() {
+    state->commandMaster = startProcess([&]() {
         restoreSignals();
 
         close(out.readSide.get());
@@ -71,10 +71,10 @@ Path ScriptMaster::startMaster()
         if (dup2(out.writeSide.get(), STDOUT_FILENO) == -1)
             throw SysError("duping over stdout");
 
-        Strings args = { script, "master", tmpDir };
+        Strings args = { command, "master", tmpDir };
         execvp(args.begin()->c_str(), stringsToCharPtrs(args).data());
 
-        throw SysError("starting script master");
+        throw SysError("starting command master");
     });
 
     out.writeSide = -1;
@@ -85,7 +85,7 @@ Path ScriptMaster::startMaster()
     } catch (EndOfFile & e) { }
 
     if (reply != "started")
-        throw Error("failed to start script '%s'", script);
+        throw Error("failed to start command '%s'", command);
 
     return tmpDir;
 }
